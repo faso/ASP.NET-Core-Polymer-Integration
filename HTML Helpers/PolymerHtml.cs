@@ -7,6 +7,28 @@ using System.Reflection;
 
 namespace System.Web.Mvc.Polymer
 {
+    public static class ObjectExtensions
+    {
+        public static IDictionary<string, object> AddProperty(this object obj, string name, object value)
+        {
+            var dictionary = obj.ToDictionary();
+            dictionary.Add(name, value);
+            return dictionary;
+        }
+
+        // helper
+        public static IDictionary<string, object> ToDictionary(this object obj)
+        {
+            IDictionary<string, object> result = new Dictionary<string, object>();
+            var properties = obj.GetType().GetProperties();
+            foreach (var property in properties)
+            {
+                result.Add(property.Name, property.GetValue(obj));
+            }
+            return result;
+        }
+    }
+
     public class PolymerTagBuilder : TagBuilder
     {
         public PolymerTagBuilder(string tagName)
@@ -35,7 +57,7 @@ namespace System.Web.Mvc.Polymer
 
         public static IHtmlContent BeginForm(string action = null, string method = null, object htmlAttributes = null)
         {
-            var builder = new PolymerTagBuilder("form");
+            var builder = new PolymerTagBuilder("form", htmlAttributes);
             builder.TagRenderMode = TagRenderMode.StartTag;
 
             builder.MergeAttribute("is", ironFormName);
@@ -51,7 +73,7 @@ namespace System.Web.Mvc.Polymer
 
         public static IHtmlContent CheckBox(string label = null, bool check = false, object htmlAttributes = null)
         {
-            var builder = new PolymerTagBuilder("paper-checkbox");
+            var builder = new PolymerTagBuilder("paper-checkbox", htmlAttributes);
             builder.TagRenderMode = TagRenderMode.Normal;
 
             if (label != null)
@@ -65,8 +87,11 @@ namespace System.Web.Mvc.Polymer
 
         public static IHtmlContent Input(string label = null, string prefix = null, string suffix = null, object htmlAttributes = null)
         {
-            var builder = new PolymerTagBuilder("paper-checkbox");
+            var builder = new PolymerTagBuilder("paper-input", htmlAttributes);
             builder.TagRenderMode = TagRenderMode.Normal;
+
+            if (htmlAttributes != null)
+                builder.MergeAttributes(new RouteValueDictionary(htmlAttributes));
 
             if (prefix != null)
             {
@@ -96,7 +121,7 @@ namespace System.Web.Mvc.Polymer
                 htmlAttributes = new { type = "password" };
             else
             {
-                ((Dictionary<object, string>)htmlAttributes).Add("type", "password");
+                htmlAttributes = htmlAttributes.AddProperty("type", "password");
             }
             return PolymerHtml.Input(label, null, null, htmlAttributes);
         }
